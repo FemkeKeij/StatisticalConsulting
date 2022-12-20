@@ -1,0 +1,137 @@
+---
+title: "00_supporting_R"
+author: "Femke Keij S2647168"
+date: '2022-12-07'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(RColorBrewer)
+```
+
+# Sampling frequencies in Legrand et al. (2022)
+For the purpose of data simulation, it is necessary to know how many unique intensities each subject is presented. We get a plausible range for this value from the Legrand et al. (2022) data.
+
+Import Legrand et al. (2022) data:
+```{r}
+DataOriginal <- read.csv(url('https://github.com/embodied-computation-group/CardioceptionPaper/raw/main/data/Del2_merged.txt'))
+``` 
+
+Split into extero vs. interoceptive:
+```{r}
+dataEx <- DataOriginal[DataOriginal$Modality == 'Extero',]
+dataIn <- DataOriginal[DataOriginal$Modality == 'Intero',]
+```
+
+Vector with all subjects:
+```{r}
+subjects <- unique(DataOriginal$Subject)
+```
+
+Find the number of unique intensities presented to each subject (used the interoceptive data here because that is the condition we are most interested in, but you could also use the exteroceptive or the full data):
+```{r}
+uniquex <- numeric(length(subjects))
+for(i in 1:length(subjects)){
+  sub <- dataIn[dataIn$Subject == subjects[i],]
+  uniquex[i] <- length(unique(sub$Alpha))
+}
+
+range(uniquex)
+``` 
+
+# Plots and statistics to help inform the choice of the priors for the hierarchical Bayes model
+The goal here is to inform the choice of the priors of the hierarchical Bayes model, based on the distribution of bias and precision in the data from Legrand et al. (2022).
+
+Read in the fitted original data:
+```{r}
+data <- read.csv('original_data_fit.csv')
+data <- data[, 2:6]
+
+data %>%
+  rename(Modality = Condition) -> data
+```
+
+## Bias
+```{r}
+data %>%
+  ggplot(aes(x = Bias, color = Modality)) +
+  geom_histogram(bins = 80, aes(y = ..density..),
+                 fill = 'white', position = 'dodge') +
+  scale_color_manual(values = c('#00BFFF', '#ff1493'),
+                     labels = c('Exteroception', 'Interoception')) +
+  theme_classic() +
+  xlab(expression(paste("bias (", Delta," BPM)"))) +
+  scale_x_continuous(limits = c(-40, 40))
+```
+
+### Interoception
+The mean & standard deviation are
+```{r}
+mean(data[data$Modality == 'Intero', ]$Bias)
+sd(data[data$Modality == 'Intero', ]$Bias)
+```
+Mean = -7.79
+Sd = 11.13
+
+### Exteroception
+The mean & standard deviation are
+```{r}
+mean(data[data$Modality == 'Extero', ]$Bias)
+sd(data[data$Modality == 'Extero', ]$Bias)
+```
+Mean = 0.80
+Sd = 3.62
+
+### Averaged
+```{r}
+mean(data$Bias)
+sd(data$Bias)
+```
+mean = -3.50
+sd = 9.32
+
+## Precision
+```{r}
+data %>%
+  ggplot(aes(x = Precision, color = Modality)) +
+  geom_histogram(bins = 80, aes(y = ..density..),
+                 fill = 'white', position = 'dodge') +
+  scale_color_manual(values = c('#00BFFF', '#ff1493'),
+                     labels = c('Exteroception', 'Interoception')) +
+  theme_classic() +
+  xlab(expression(paste("precision (", Delta," BPM)"))) +         
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 40)) +
+  theme(legend.position = 'none')
+```
+
+### Interoception
+The mean & standard deviation are
+```{r}
+mean(data[data$Modality == 'Intero', ]$Precision)
+sd(data[data$Modality == 'Intero', ]$Precision)
+```
+Mean = 12.09
+Sd = 4.43
+
+### Exteroception
+The mean & standard deviation are
+```{r}
+mean(data[data$Modality == 'Extero', ]$Precision)
+sd(data[data$Modality == 'Extero', ]$Precision)
+```
+Mean = 8.43
+Sd = 3.64
+
+### Averaged
+```{r}
+mean(data$Precision)
+sd(data$Precision)
+```
+mean = 10.26
+sd = 4.45
